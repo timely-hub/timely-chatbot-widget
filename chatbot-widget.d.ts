@@ -1,4 +1,53 @@
 import { LitElement } from 'lit';
+export interface WidgetTheme {
+    title?: string;
+    /**
+     * 사용자 업로드 이미지 URL — launcher에 표시. 미지정 시 기본 chat icon 사용.
+     * launcherBg의 명도에 따라 fallback icon 색은 자동 대비 처리.
+     */
+    iconUrl?: string;
+    /** 헤더 좌측에 표시할 작은 아이콘 이미지 URL. 미지정 시 텍스트만. */
+    headerIconUrl?: string;
+    /** launcher (toggle) 버튼 배경색. 기본: #1f2937 */
+    launcherBg?: string;
+    /** panel 전체 바탕색. 기본: #ffffff */
+    panelBg?: string;
+    /** panel header 영역 배경색. 기본: #f9fafb */
+    headerBg?: string;
+    /** 사용자 메시지 bubble 배경색. 기본: launcherBg와 동일. */
+    userBg?: string;
+    /** 사용자 메시지 텍스트 색상. 기본: #ffffff */
+    userText?: string;
+    /** 어시스턴트 메시지 bubble 배경색. 기본: #f3f4f6 */
+    assistantBg?: string;
+    /** 어시스턴트 메시지 텍스트 색상. 기본: #111111 */
+    assistantText?: string;
+    /** 전송 버튼 배경색. 기본: launcherBg와 동일. */
+    sendBg?: string;
+    /** 전송 버튼 텍스트 색상. 기본: #ffffff */
+    sendText?: string;
+    /** 헤더 제목 텍스트 크기(px). 기본 14 */
+    headerTitleSize?: number;
+    /** 채팅 메시지 본문 텍스트 크기(px). 기본 14 */
+    messageSize?: number;
+    /** 입력 폰트 크기(px). 기본 14 */
+    inputSize?: number;
+    /** 데스크톱 런처(toggle) 버튼 크기(px). 기본 100 */
+    launcherSize?: number;
+    /** 모바일(≤640px) 런처(toggle) 버튼 크기(px). 기본 52 */
+    launcherSizeMobile?: number;
+    /** 커스텀 업로드 아이콘(iconUrl) 크기(px). 기본 36 */
+    launcherIconSize?: number;
+    /** 기본 아이콘(SVG, iconUrl 미지정 시) 크기(px). 기본 24 */
+    launcherSvgSize?: number;
+    /**
+     * 기능 토글 — undefined면 default ON. host script에서 `theme: { captureEnabled: false }`로
+     * 특정 페이지에서만 끌 수 있음.
+     */
+    captureEnabled?: boolean;
+    regionCaptureEnabled?: boolean;
+    selectionMirrorEnabled?: boolean;
+}
 export declare class TimelyChatbot extends LitElement {
     apiKey: string;
     browserId: string;
@@ -9,6 +58,33 @@ export declare class TimelyChatbot extends LitElement {
      * 미설정 시 게스트 모드 — apiKey로 우리 서버 /widget/guest-jwt를 자동 호출.
      */
     getAccessToken?: () => Promise<string>;
+    /**
+     * 미리보기 모드. true면 네트워크 호출(`/widget/init`, `/widget/chat`) 모두 skip하고
+     * panel 자동 open + 더미 메시지로 외형/테마만 보여줌. dashboard 라이브 프리뷰용.
+     *
+     * 외부에서 theme prop은 별도로 set — `el.setPreviewTheme({ launcherBg: ... })`로 갱신 가능.
+     * 또는 element style.setProperty('--launcher-bg', ...) 직접도 OK (CSS variable).
+     */
+    previewMode: boolean;
+    /**
+     * inline 모드 — host element 자체가 panel 컨테이너. launcher 숨김 + panel이 host의
+     * width/height 100%로 채움. dashboard 라이브 프리뷰처럼 임의 위치에 박을 때.
+     *
+     * 사용 예: `<timely-chatbot inline preview-mode style="width:320px;height:480px"></timely-chatbot>`
+     * 또는 부모 div에 sizing 두고 widget이 inherit.
+     *
+     * `previewMode`와는 독립 — inline만 단독으로 켜면 실제 채팅 panel이 inline에 고정됨
+     * (운영 시 launcher 없이 항상 열려있는 패널 형태도 가능).
+     */
+    inline: boolean;
+    /**
+     * host script가 init()으로 넘긴 theme override.
+     *
+     * /widget/init에서 받은 서버 theme(대시보드 저장값) 위에 shallow merge —
+     * host script에서 `init({ theme: { captureEnabled: false, messageSize: 16 } })`
+     * 처럼 페이지별로 끄거나 키울 수 있음. 서버 default는 손대지 않음.
+     */
+    themeOverride?: Partial<WidgetTheme>;
     private open;
     private fullscreen;
     private messages;
@@ -16,10 +92,22 @@ export declare class TimelyChatbot extends LitElement {
     private streaming;
     private sessionId?;
     private theme;
+    /**
+     * /widget/init 응답에서 받은 projectId. sessionStorage 키 prefix로 사용 (다중 widget 임베드
+     * 시 충돌 방지). state로 둘 필요 없음 — 한 번 set 후 변하지 않고 render에 안 쓰임.
+     */
+    private projectId?;
+    /**
+     * 1 user message 최대 글자수. /widget/init 응답으로 수신. textarea maxLength + counter UI에 사용.
+     * 미수신 시 fallback 2000 (서버 default와 동일).
+     */
+    private maxUserMessageChars;
     /** panel rect (viewport 기준). 첫 open 시 default 위치/사이즈로 init. */
     private rect;
     /** 신고 폼이 열린 메시지 id. null이면 닫힘. */
     private reportingMessageId;
+    /** 헤더의 "대화 초기화" 버튼이 띄우는 인-위젯 확인 모달 토글. */
+    private resetConfirmOpen;
     private reportReason;
     private reportDetail;
     private reportSubmitting;
@@ -54,9 +142,39 @@ export declare class TimelyChatbot extends LitElement {
     render(): import('lit').TemplateResult<1>;
     private renderReportModal;
     private renderRegionCaptureOverlay;
+    /**
+     * 대화 초기화 확인 모달 — 인-위젯 스타일, 테마 컬러(--launcher-bg) 사용해 호스트 페이지에
+     * 자연스럽게 녹아듦. 기존 report-modal 스타일 재사용 + reset 전용 actions만.
+     */
+    private renderResetConfirmModal;
     private renderInquiryModal;
     connectedCallback(): void;
+    /**
+     * 미리보기 모드 셋업 — panel 자동 open + 더미 메시지. 네트워크 호출 0.
+     * dashboard의 라이브 프리뷰에서 외형/테마 검증용.
+     */
+    private setupPreviewMode;
+    /**
+     * 미리보기 모드에서 외부(dashboard)가 theme prop을 즉시 갱신할 때 사용.
+     * 일반 모드에선 fetchInit이 theme를 채움 — 이 메서드는 호출 안 함.
+     */
+    setPreviewTheme(theme: WidgetTheme): void;
     disconnectedCallback(): void;
+    /**
+     * 호스트 페이지의 세로 scrollbar 폭을 측정해 CSS 변수에 반영.
+     *
+     * 문제: fullscreen 시 `.panel`이 `inset: 0; width: 100vw` — 100vw는 scrollbar 영역까지
+     * 포함하는 viewport 폭이라, panel의 우측 끝이 호스트 scrollbar 뒤에 깔린다. 결과적으로
+     * 우측 내부 padding 영역이 scrollbar에 가려져 보임.
+     *
+     * 해결: `window.innerWidth`(scrollbar 포함) − `documentElement.clientWidth`(scrollbar 제외)로
+     * scrollbar 폭을 얻어 CSS 변수에 박고, fullscreen 시 panel `right` inset에 더한다.
+     */
+    private updatePageScrollbarOffset;
+    private storageKey;
+    private loadPersistedSession;
+    private persistSession;
+    private clearPersistedSession;
     private handleDocPointerDown;
     /**
      * 페이지 selection 미러링 — 한 turn에 한 슬롯만 동기화.
@@ -69,10 +187,24 @@ export declare class TimelyChatbot extends LitElement {
     private handleSelectionChange;
     private syncSelectionAttachment;
     private fetchInit;
-    /** theme를 host element에 적용 (CSS variables + data-position). */
+    private themeCacheKey;
+    private loadCachedTheme;
+    private saveCachedTheme;
+    /**
+     * theme를 host element에 적용 (CSS variables).
+     *
+     * launcherBg가 밝은 색일 경우 SVG 아이콘(닫기/chat fallback)이 white 위에 white로
+     * 사라지는 문제 방지 — launcherBg의 상대 휘도를 계산해 --launcher-fg 자동 설정.
+     * 사용자 업로드 이미지 아이콘은 영향 없음(img는 색상 무관).
+     */
     private applyTheme;
     private renderToggleIcon;
-    /** open 시 첫 호출 — theme position 기준 default rect 계산. */
+    /**
+     * open 시 첫 호출 — default panel rect 계산.
+     *
+     * 위치는 host element의 data-position 속성 기준 (host script가 설정).
+     * 미설정 시 우측 하단 default.
+     */
     private ensureRect;
     private panelStyle;
     private startResize;
@@ -85,6 +217,17 @@ export declare class TimelyChatbot extends LitElement {
     private openReport;
     private closeReport;
     private submitReport;
+    /**
+     * 헤더의 "대화 초기화" 버튼. 사용자에게 인-위젯 확인 모달 띄움. 스트리밍 중이거나
+     * 메시지가 없으면 무시 (UI에서 이미 disabled, 안전망).
+     */
+    private resetConversation;
+    /**
+     * 실제 reset 실행 — sessionStorage 비움 + 메시지/세션 초기화. 다음 메시지부터 서버
+     * 입장에서 새 세션. 모달도 함께 닫음.
+     */
+    private confirmReset;
+    private cancelReset;
     private openInquiry;
     private closeInquiry;
     private submitInquiry;
@@ -100,6 +243,14 @@ export declare class TimelyChatbot extends LitElement {
     private regionPointerMove;
     private regionPointerUp;
     private removeAttachment;
+    /** composer textarea 참조 — input 후 자동 height 조정 + send 후 reset에 사용. */
+    private composerTextarea?;
+    private onComposerInput;
+    /**
+     * Enter로 전송, Shift+Enter는 줄바꿈. IME 조합 중(`isComposing`)이면 무시 — 한글 입력
+     * 조합 종료 Enter가 send를 발화시키는 흔한 버그 방지.
+     */
+    private onComposerKeydown;
     private send;
     private handleSse;
 }
