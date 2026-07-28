@@ -4,8 +4,43 @@ export interface WidgetTheme {
     /**
      * 사용자 업로드 이미지 URL — launcher에 표시. 미지정 시 기본 chat icon 사용.
      * launcherBg의 명도에 따라 fallback icon 색은 자동 대비 처리.
+     * **설정 시 패널이 열려도 이 아이콘이 유지된다** (닫기 X로 바뀌지 않음) — 등록한
+     * 브랜드 아이콘이 사라지지 않게. 닫기는 런처 재클릭 또는 패널 헤더의 × 로.
      */
     iconUrl?: string;
+    /**
+     * launcher의 원형 배경/그림자를 없애고 iconUrl 이미지만 그대로 노출.
+     * iconUrl 미설정 시 무시 (기본 SVG는 배경 원 필요).
+     * 열린 상태는 opacity/축소로만 표시.
+     */
+    launcherIconOnly?: boolean;
+    /**
+     * launcher에 곁들일 짧은 문구 (예: "문의하기"). 미지정/빈 문자열이면 미표시.
+     * 표시 방식은 launcherLabelMode 로 선택.
+     */
+    launcherLabel?: string;
+    /**
+     * launcherLabel 표시 방식.
+     *   - "always"(기본): 아이콘 **아래에 항상** 표시. host가 bottom 고정이라 라벨이
+     *     아래에 붙고 아이콘이 그만큼 위로 올라간다.
+     *   - "hover": 마우스를 올릴 때만 **툴팁**으로 표시. 레이아웃을 밀지 않는다.
+     *     위/아래는 열린 panel·viewport 경계와 겹칠 수 있어 런처 **옆**에 띄운다
+     *     (우측 하단이면 왼쪽, 좌측 하단이면 오른쪽).
+     */
+    launcherLabelMode?: "always" | "hover";
+    /**
+     * always 모드 라벨 색. 호스트 페이지 배경 위에 놓이는 텍스트라 대비가 중요 —
+     * 어두운 페이지에 올릴 땐 반드시 밝은 색으로 지정. 기본 launcherBg.
+     * (hover 툴팁은 자체 배경을 가지므로 이 값과 무관하게 항상 고정 색상.)
+     */
+    launcherLabelColor?: string;
+    /** 라벨/툴팁 글자 크기(px). 기본 12. */
+    launcherLabelSize?: number;
+    /**
+     * 대화 목록 최상단에 항상 표시되는 인사 말풍선. 마크다운 지원.
+     * 서버 히스토리엔 포함되지 않는 표시 전용 — sessionStorage에도 저장 안 됨.
+     */
+    welcomeMessage?: string;
     /** 헤더 좌측에 표시할 작은 아이콘 이미지 URL. 미지정 시 텍스트만. */
     headerIconUrl?: string;
     /** launcher (toggle) 버튼 배경색. 기본: #1f2937 */
@@ -155,6 +190,11 @@ export declare class TimelyChatbot extends LitElement {
      */
     private setupPreviewMode;
     /**
+     * 프리뷰 더미 메시지 — welcomeMessage가 설정되면 상단에 웰컴 말풍선이 별도 렌더되므로
+     * 더미 인사말은 빼서 인사가 두 번 보이는 것 방지.
+     */
+    private syncPreviewMessages;
+    /**
      * 미리보기 모드에서 외부(dashboard)가 theme prop을 즉시 갱신할 때 사용.
      * 일반 모드에선 fetchInit이 theme를 채움 — 이 메서드는 호출 안 함.
      */
@@ -188,6 +228,8 @@ export declare class TimelyChatbot extends LitElement {
     private syncSelectionAttachment;
     private fetchInit;
     private themeCacheKey;
+    /** host script 의 themeOverride 를 현재 theme 위에 즉시 병합 (서버 응답 불필요). */
+    private applyThemeOverride;
     private loadCachedTheme;
     private saveCachedTheme;
     /**
@@ -206,6 +248,12 @@ export declare class TimelyChatbot extends LitElement {
      * 미설정 시 우측 하단 default.
      */
     private ensureRect;
+    /**
+     * panel 하단이 런처 위로 얼마나 떠야 하는지 — 런처 스택(버튼 + always 라벨)의
+     * 실측 높이 + 여백. PANEL_GAP(56+16 하드코딩) 은 기본 크기 전제라 큰 launcherSize
+     * 나 always 라벨에서 panel 이 런처를 덮었다. 실측 실패 시 기존 상수로 폴백.
+     */
+    private launcherGap;
     private panelStyle;
     private startResize;
     private startDrag;
@@ -256,7 +304,7 @@ export declare class TimelyChatbot extends LitElement {
 }
 declare global {
     interface HTMLElementTagNameMap {
-        'timely-chatbot': TimelyChatbot;
+        "timely-chatbot": TimelyChatbot;
     }
 }
 //# sourceMappingURL=chatbot-widget.d.ts.map
