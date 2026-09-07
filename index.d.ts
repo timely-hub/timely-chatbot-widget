@@ -33,12 +33,12 @@ export interface InitOptions {
     /** 마운트 위치. default: <body>. */
     mountTo?: HTMLElement;
     /**
-     * launcher 위치 — 미지정 시 우측 하단. 좌측 하단으로 옮기려면 `'bottom-left'`.
+     * launcher 위치: 미지정 시 우측 하단. 좌측 하단으로 옮기려면 `'bottom-left'`.
      * inline 모드(태그만 삽입)는 host element에 직접 `data-position="bottom-left"`도 가능.
      */
     position?: 'bottom-right' | 'bottom-left';
     /**
-     * 페이지별 theme override — 대시보드 설정값이 기본이고, 여기에 넘기면 그 위에 shallow merge.
+     * 페이지별 theme override: 대시보드 설정값이 기본이고, 여기에 넘기면 그 위에 shallow merge.
      * 예: 일부 페이지에서 캡처 기능 끄기 → `{ captureEnabled: false, regionCaptureEnabled: false }`.
      * 색상/폰트 사이즈/아이콘 URL 등 모든 WidgetTheme 필드 override 가능.
      */
