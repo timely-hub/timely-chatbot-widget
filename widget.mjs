@@ -8979,8 +8979,33 @@ const oa = {
 k.setOptions({ gfm: !0, breaks: !0 });
 k.use({ tokenizer: { del: () => {
 } } });
+const Rw = /[가-힣ㄱ-ㅎㅏ-ㅣ]/, Mw = /[/?#&=+%~-]/;
+k.use({
+  tokenizer: {
+    url(t) {
+      const A = this.rules.inline.url.exec(t);
+      if (!A || A[2] === "@") return !1;
+      let e = A[0];
+      const r = e.search(Rw);
+      r > 0 && !Mw.test(e.charAt(r - 1)) && (e = e.slice(0, r));
+      let s;
+      do
+        s = e, e = this.rules.inline._backpedal.exec(e)?.[0] ?? "";
+      while (s !== e);
+      if (!e) return;
+      const n = A[1] === "www." ? `http://${e}` : e;
+      return {
+        type: "link",
+        raw: e,
+        text: e,
+        href: n,
+        tokens: [{ type: "text", raw: e, text: e }]
+      };
+    }
+  }
+});
 const en = 5e4;
-function Rw() {
+function _w() {
   try {
     const t = document.body.cloneNode(!0);
     t.querySelectorAll(
@@ -9035,7 +9060,7 @@ function ca(t) {
     ALLOWED_ATTR: ["href", "title", "target", "rel", "class"]
   });
 }
-function Mw(t) {
+function Ow(t) {
   const A = t.trim();
   let e = 0, r = 0, s = 0;
   if (A.startsWith("#")) {
@@ -9060,11 +9085,11 @@ function Mw(t) {
   };
   return 0.2126 * n(e) + 0.7152 * n(r) + 0.0722 * n(s);
 }
-function _w(t) {
+function Nw(t) {
   return t instanceof DOMException ? t.name === "QuotaExceededError" || t.name === "NS_ERROR_DOM_QUOTA_REACHED" || t.code === 22 || t.code === 1014 : !1;
 }
-function Ow(t) {
-  const A = Mw(t);
+function Pw(t) {
+  const A = Ow(t);
   return A === null ? "#ffffff" : A > 0.5 ? "#111111" : "#ffffff";
 }
 let L = class extends Kt {
@@ -9772,7 +9797,7 @@ let L = class extends Kt {
         );
         return;
       } catch (r) {
-        if (!_w(r) || A.length <= 2)
+        if (!Nw(r) || A.length <= 2)
           return;
         const s = Math.max(2, Math.floor(A.length * 0.2));
         A = A.slice(s);
@@ -9878,7 +9903,7 @@ let L = class extends Kt {
     };
     A("--launcher-bg", t.launcherBg), A("--panel-bg", t.panelBg), A("--header-bg", t.headerBg), A("--user-bg", t.userBg), A("--user-text", t.userText), A("--assistant-bg", t.assistantBg), A("--assistant-text", t.assistantText), A("--send-bg", t.sendBg), A("--send-text", t.sendText), A(
       "--launcher-fg",
-      t.launcherBg ? Ow(t.launcherBg) : void 0
+      t.launcherBg ? Pw(t.launcherBg) : void 0
     );
     const e = (r) => typeof r == "number" ? `${r}px` : void 0;
     A("--header-title-size", e(t.headerTitleSize)), A("--message-size", e(t.messageSize)), A("--input-size", e(t.inputSize)), A("--launcher-size", e(t.launcherSize)), A("--launcher-size-mobile", e(t.launcherSizeMobile)), A("--launcher-icon-size", e(t.launcherIconSize)), A("--launcher-svg-size", e(t.launcherSvgSize)), A("--launcher-label-color", t.launcherLabelColor), A("--launcher-label-size", e(t.launcherLabelSize));
@@ -10101,7 +10126,7 @@ ${e.map((o) => `[첨부] ${o.label}`).join(`
     ), i = {
       url: window.location.href,
       title: document.title,
-      mainText: Rw()
+      mainText: _w()
     };
     try {
       let o;
@@ -11326,8 +11351,8 @@ D([
 L = D([
   Op("timely-chatbot")
 ], L);
-const la = "timely-chatbot-bid", Nw = "http://localhost:3410";
-function Pw() {
+const la = "timely-chatbot-bid", $w = "http://localhost:3410";
+function Gw() {
   try {
     const t = localStorage.getItem(la);
     if (t) return t;
@@ -11337,15 +11362,15 @@ function Pw() {
     return `tc-${crypto.randomUUID()}`;
   }
 }
-function $w(t) {
+function Vw(t) {
   if (!t.apiKey) throw new Error("TimelyChatbot.init: apiKey가 필요합니다");
   const A = document.createElement("timely-chatbot");
-  return A.apiBaseUrl = t.apiBaseUrl ?? Nw, A.apiKey = t.apiKey, A.browserId = Pw(), t.getAccessToken && (A.getAccessToken = t.getAccessToken), t.position === "bottom-left" && (A.dataset.position = "bottom-left"), t.theme && (A.themeOverride = t.theme), (t.mountTo ?? document.body).appendChild(A), {
+  return A.apiBaseUrl = t.apiBaseUrl ?? $w, A.apiKey = t.apiKey, A.browserId = Gw(), t.getAccessToken && (A.getAccessToken = t.getAccessToken), t.position === "bottom-left" && (A.dataset.position = "bottom-left"), t.theme && (A.themeOverride = t.theme), (t.mountTo ?? document.body).appendChild(A), {
     destroy: () => A.remove()
   };
 }
-window.TimelyChatbot = { init: $w };
+window.TimelyChatbot = { init: Vw };
 export {
-  $w as init
+  Vw as init
 };
 //# sourceMappingURL=widget.mjs.map
