@@ -82,6 +82,20 @@ export interface WidgetTheme {
     captureEnabled?: boolean;
     regionCaptureEnabled?: boolean;
     selectionMirrorEnabled?: boolean;
+    /**
+     * 위젯 디자인. 미지정이면 "classic"(지금까지의 모양)이라, 이미 붙어 있는 사이트는 위젯
+     * 코드가 바뀌어도 그대로 보인다. "modern" 은 브랜드 색 머리글, 흰 답 카드, 둥근 입력칸,
+     * 아래에서 올라오는 시트를 쓰는 새 디자인. 새 프로젝트는 서버가 "modern" 으로 만들고,
+     * 기존 프로젝트는 대시보드 위젯 테마에서 바꾼다. 호스트가 init theme 으로 덮어써도 된다.
+     */
+    design?: "classic" | "modern";
+    /**
+     * modern 머리글 제목 아래 안내 문구. 미지정이면 "보통 몇 초 안에 답해요", 빈 문자열이면 숨김.
+     * 상담 시간이나 AI 가 답한다는 안내에 쓴다. classic 에는 안내 문구 자리가 없다.
+     */
+    headerSubtitle?: string;
+    /** modern 첫 화면의 추천 질문 (최대 4개). 누르면 바로 물어보고, 첫 질문을 보내면 사라진다. */
+    suggestedQuestions?: string[];
 }
 export declare class TimelyChatbot extends LitElement {
     apiKey: string;
@@ -156,6 +170,15 @@ export declare class TimelyChatbot extends LitElement {
     private inquirySubmitting;
     private inquiryError;
     private inquirySuccess;
+    /** modern 머리글의 ⋯ 메뉴 (문의 남기기 / 새 대화 / 크게 보기). */
+    private menuOpen;
+    /**
+     * modern 의 "다시 시도"용: 연결·서버 오류로 답을 못 받은 마지막 질문과 첨부.
+     * 메모리에만 두고 저장하지 않는다 (첨부 이미지 base64 가 클 수 있고, 새로고침 뒤엔 의미 없음).
+     */
+    private lastFailed;
+    /** 지금 답을 받는 중인 질문. 스트림 도중 error 이벤트가 오면 lastFailed 로 옮긴다. */
+    private inflight;
     /** 다음 메시지 전송 시 함께 보낼 첨부. */
     private pendingAttachments;
     private capturing;
@@ -175,6 +198,31 @@ export declare class TimelyChatbot extends LitElement {
     private jwt?;
     static styles: import('lit').CSSResult;
     render(): import('lit').TemplateResult<1>;
+    /** theme.design === "modern" (새 디자인). 미지정·"classic" 이면 종전 모양. */
+    private get isModern();
+    /**
+     * modern 머리글: 아바타, 제목, 안내 문구, ⋯ 메뉴(새 대화·크게 보기), 닫기.
+     * 안내 문구는 theme.headerSubtitle (미지정이면 기본 문구, 빈 문자열이면 숨김).
+     * 문의는 머리글이 빡빡해서 입력창 위 한 줄로 뺐다 (renderModernComposer).
+     */
+    private renderModernHeader;
+    private toggleMenu;
+    private closeMenu;
+    private renderMenu;
+    /** modern 오류 안내 카드. "다시 시도"는 마지막으로 실패한 답에만, 답을 받는 중이 아닐 때만. */
+    private renderNotice;
+    /** 보내기 전 첨부 칩. classic 은 입력창 위 줄에, modern 은 입력 영역 안에 놓는다. */
+    private renderPendingChips;
+    /** modern 추천 질문. 첫 질문을 보내기 전까지만 보인다 (대시보드 미리보기에선 늘 보여 준다). */
+    private renderSuggestions;
+    /** 추천 질문을 누르면 입력칸에 넣고 바로 보낸다. 보내는 흐름은 send 그대로 쓴다. */
+    private askSuggested;
+    /**
+     * modern 입력: 위 줄에 캡처 버튼(왼쪽)과 늘 보이는 문의 남기기(오른쪽), 아래 줄에 둥근 입력칸과
+     * 동그란 보내기. 캡처를 둘 다 끈 사이트는 캡처 자리에 안내 문구를 둔다.
+     * 글자 수는 80%부터 보이고 95%부터 빨갛다.
+     */
+    private renderModernComposer;
     private renderReportModal;
     private renderRegionCaptureOverlay;
     /**
@@ -211,6 +259,12 @@ export declare class TimelyChatbot extends LitElement {
      * scrollbar 폭을 얻어 CSS 변수에 박고, fullscreen 시 panel `right` inset에 더한다.
      */
     private updatePageScrollbarOffset;
+    /**
+     * 모바일(≤640px) classic 패널이 런처를 덮지 않게, 런처 스택(버튼 + always 라벨) 높이를 재서
+     * 패널 아래 여백(--launcher-clear)으로 쓴다. 16 = 모바일 host 아래 여백, 12 = 패널과의 틈.
+     * 종전엔 80px 고정이라 큰 런처나 라벨이 패널 밑에 깔렸다. 런처가 없으면(inline) 그대로 둔다.
+     */
+    private updateLauncherClearance;
     private storageKey;
     private loadPersistedSession;
     private persistSession;
@@ -306,7 +360,10 @@ export declare class TimelyChatbot extends LitElement {
     private regionPointerMove;
     private regionPointerUp;
     private removeAttachment;
-    /** composer textarea 참조: input 후 자동 height 조정 + send 후 reset에 사용. */
+    /**
+     * composer textarea 참조: input 후 자동 height 조정 + send 후 reset에 사용.
+     * 위젯 안 form 은 입력창 하나뿐이라 두 디자인(classic .composer / modern .m-input) 모두 잡힌다.
+     */
     private composerTextarea?;
     private onComposerInput;
     /**
@@ -315,6 +372,13 @@ export declare class TimelyChatbot extends LitElement {
      */
     private onComposerKeydown;
     private send;
+    /**
+     * 질문 하나를 보내고 답 스트림을 assistant 말풍선에 채운다. send 와 modern 의 "다시 시도"가 함께 쓴다.
+     * 호출 전에 streaming = true 와 assistant placeholder 가 준비돼 있어야 한다.
+     */
+    private streamReply;
+    /** modern "다시 시도": 실패한 답 자리를 새 말풍선으로 바꾸고 같은 질문과 첨부를 다시 보낸다. */
+    private retryLast;
     private handleSse;
 }
 declare global {
