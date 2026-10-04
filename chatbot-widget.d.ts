@@ -215,6 +215,13 @@ export declare class TimelyChatbot extends LitElement {
     private renderPendingChips;
     /** modern 추천 질문. 첫 질문을 보내기 전까지만 보인다 (대시보드 미리보기에선 늘 보여 준다). */
     private renderSuggestions;
+    /**
+     * modern 답 뒤 칩 (서버의 답 확인이 고른 것). 마지막 답에만 그린다.
+     * FAQ 질문은 처음 추천 질문처럼 누르면 그대로 보내고, 담당자 칩은 방금 질문을 제목에 채워 문의 시트를 연다.
+     */
+    private renderHint;
+    /** 이 답 바로 앞의 방문자 질문. */
+    private questionBefore;
     /** 추천 질문을 누르면 입력칸에 넣고 바로 보낸다. 보내는 흐름은 send 그대로 쓴다. */
     private askSuggested;
     /**
@@ -331,6 +338,8 @@ export declare class TimelyChatbot extends LitElement {
     private confirmReset;
     private cancelReset;
     private openInquiry;
+    /** 답 뒤 담당자 칩: 방금 질문을 제목에 채워 문의 시트를 연다 (대화도 sessionId 로 함께 간다). */
+    private openInquiryFor;
     private closeInquiry;
     private submitInquiry;
     /**
