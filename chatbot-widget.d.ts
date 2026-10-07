@@ -85,6 +85,11 @@ export interface WidgetTheme {
     /** 문서 조회 내역 숨기기 (기본 꺼짐). 서버가 이 값을 보고 문서 이름 대신 횟수만 보낸다. */
     hideLookupDetails?: boolean;
     /**
+     * 답을 못 찾으면 문의 권하기 (기본 켜짐). 서버가 이 값을 보고 못 찾은 답 아래에 담당자 칩(hint.handoff)을
+     * 붙일지 정한다. 꺼도 방문자가 담당자를 찾는 말에는 붙는다.
+     */
+    notFoundHandoffEnabled?: boolean;
+    /**
      * 위젯 디자인. 미지정이면 "classic"(지금까지의 모양)이라, 이미 붙어 있는 사이트는 위젯
      * 코드가 바뀌어도 그대로 보인다. "modern" 은 브랜드 색 머리글, 흰 답 카드, 둥근 입력칸,
      * 아래에서 올라오는 시트를 쓰는 새 디자인. 새 프로젝트는 서버가 "modern" 으로 만들고,
@@ -183,6 +188,8 @@ export declare class TimelyChatbot extends LitElement {
     private inquirySuccess;
     /** modern 머리글의 ⋯ 메뉴 (문의 남기기 / 새 대화 / 크게 보기). */
     private menuOpen;
+    /** modern 입력칸 왼쪽 캡처 버튼의 고르기 메뉴 (지금 화면 / 영역 골라). 캡처를 둘 다 켰을 때만 연다. */
+    private capMenuOpen;
     /**
      * modern 의 "다시 시도"용: 연결·서버 오류로 답을 못 받은 마지막 질문과 첨부.
      * 메모리에만 두고 저장하지 않는다 (첨부 이미지 base64 가 클 수 있고, 새로고침 뒤엔 의미 없음).
@@ -212,9 +219,8 @@ export declare class TimelyChatbot extends LitElement {
     /** theme.design === "modern" (새 디자인). 미지정·"classic" 이면 종전 모양. */
     private get isModern();
     /**
-     * modern 머리글: 아바타, 제목, 안내 문구, ⋯ 메뉴(새 대화·크게 보기), 닫기.
+     * modern 머리글: 아바타, 제목, 안내 문구, 더보기 메뉴(문의 남기기·새 대화·크게 보기), 닫기.
      * 안내 문구는 theme.headerSubtitle (미지정이면 기본 문구, 빈 문자열이면 숨김).
-     * 문의는 머리글이 빡빡해서 입력창 위 한 줄로 뺐다 (renderModernComposer).
      */
     private renderModernHeader;
     private toggleMenu;
@@ -243,11 +249,21 @@ export declare class TimelyChatbot extends LitElement {
     /** 추천 질문을 누르면 입력칸에 넣고 바로 보낸다. 보내는 흐름은 send 그대로 쓴다. */
     private askSuggested;
     /**
-     * modern 입력: 위 줄에 캡처 버튼(왼쪽)과 늘 보이는 문의 남기기(오른쪽), 아래 줄에 둥근 입력칸과
-     * 동그란 보내기. 캡처를 둘 다 끈 사이트는 캡처 자리에 안내 문구를 둔다.
-     * 글자 수는 80%부터 보이고 95%부터 빨갛다.
+     * modern 입력: 왼쪽에 캡처 버튼 하나, 가운데 둥근 입력칸, 오른쪽에 동그란 보내기.
+     * 문의 남기기는 더보기 메뉴 맨 위에 있다 (renderMenu). 글자 수는 80%부터 보이고 95%부터 빨갛다.
      */
     private renderModernComposer;
+    /**
+     * modern 캡처 버튼. 캡처를 둘 다 켜 두면 고르기 메뉴(지금 화면 / 영역 골라)를 열고,
+     * 하나만 켜 두면 고를 것 없이 바로 그 캡처를 한다. 둘 다 끄면 버튼이 없다.
+     */
+    private renderCaptureButton;
+    private toggleCapMenu;
+    private closeCapMenu;
+    private pickViewportCapture;
+    private pickRegionCapture;
+    /** 열린 메뉴(더보기, 캡처 고르기)는 Esc 로 닫는다. */
+    private onPanelKeydown;
     private renderReportModal;
     private renderRegionCaptureOverlay;
     /**
