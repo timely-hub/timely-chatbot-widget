@@ -82,6 +82,8 @@ export interface WidgetTheme {
     captureEnabled?: boolean;
     regionCaptureEnabled?: boolean;
     selectionMirrorEnabled?: boolean;
+    /** 문서 조회 내역 숨기기 (기본 꺼짐). 서버가 이 값을 보고 문서 이름 대신 횟수만 보낸다. */
+    hideLookupDetails?: boolean;
     /**
      * 위젯 디자인. 미지정이면 "classic"(지금까지의 모양)이라, 이미 붙어 있는 사이트는 위젯
      * 코드가 바뀌어도 그대로 보인다. "modern" 은 브랜드 색 머리글, 흰 답 카드, 둥근 입력칸,
@@ -139,6 +141,15 @@ export declare class TimelyChatbot extends LitElement {
     private messages;
     private input;
     private streaming;
+    /**
+     * 대화 목록이 맨 아래에 있는지. 맨 아래일 때만 새 글을 따라 내려간다.
+     * 방문자가 위로 올려 읽는 중이면 끌어내리지 않고 "맨 아래로" 버튼을 띄운다.
+     */
+    private atBottom;
+    /** 대화 전에 받을 정보. 꺼져 있거나 아직 모르면 null */
+    private intake;
+    /** /widget/intake 를 이 대화에서 이미 불렀는지 (중복 호출 방지) */
+    private intakeRequest;
     private sessionId?;
     private theme;
     /**
@@ -214,6 +225,13 @@ export declare class TimelyChatbot extends LitElement {
     /** 보내기 전 첨부 칩. classic 은 입력창 위 줄에, modern 은 입력 영역 안에 놓는다. */
     private renderPendingChips;
     /** modern 추천 질문. 첫 질문을 보내기 전까지만 보인다 (대시보드 미리보기에선 늘 보여 준다). */
+    /** 처음 묻는 말, 받는 동안의 항목 칩, 다 받은 뒤의 "알려 준 정보" 카드 */
+    private renderIntake;
+    /**
+     * 대화 전에 받을 정보를 불러온다 (열 때, 새 대화를 시작할 때). 이어 쓰는 대화면 받은 값도 함께 온다.
+     * 실패해도 대화는 된다: 서버가 대화 중에 같은 규칙으로 정보를 먼저 묻는다.
+     */
+    private loadIntake;
     private renderSuggestions;
     /**
      * modern 답 뒤 칩 (서버의 답 확인이 고른 것). 마지막 답에만 그린다.
@@ -323,6 +341,9 @@ export declare class TimelyChatbot extends LitElement {
     private toggle;
     updated(): void;
     private scrollToBottom;
+    /** 맨 아래에서 48px 안이면 맨 아래로 본다 (마지막 줄이 조금 덜 보여도 따라가게). */
+    private onMessagesScroll;
+    private jumpToBottom;
     private openReport;
     private closeReport;
     private submitReport;
