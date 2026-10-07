@@ -188,7 +188,7 @@ export declare class TimelyChatbot extends LitElement {
     private inquirySuccess;
     /** modern 머리글의 ⋯ 메뉴 (문의 남기기 / 새 대화 / 크게 보기). */
     private menuOpen;
-    /** modern 입력칸 왼쪽 캡처 버튼의 고르기 메뉴 (지금 화면 / 영역 골라). 캡처를 둘 다 켰을 때만 연다. */
+    /** modern 입력칸 왼쪽 + 버튼의 캡처 메뉴 (지금 화면 / 영역 골라 가운데 켜 둔 것). */
     private capMenuOpen;
     /**
      * modern 의 "다시 시도"용: 연결·서버 오류로 답을 못 받은 마지막 질문과 첨부.
@@ -249,13 +249,14 @@ export declare class TimelyChatbot extends LitElement {
     /** 추천 질문을 누르면 입력칸에 넣고 바로 보낸다. 보내는 흐름은 send 그대로 쓴다. */
     private askSuggested;
     /**
-     * modern 입력: 왼쪽에 캡처 버튼 하나, 가운데 둥근 입력칸, 오른쪽에 동그란 보내기.
+     * modern 입력: 왼쪽에 + 버튼(화면 캡처 메뉴), 가운데 둥근 입력칸, 오른쪽에 동그란 보내기.
      * 문의 남기기는 더보기 메뉴 맨 위에 있다 (renderMenu). 글자 수는 80%부터 보이고 95%부터 빨갛다.
      */
     private renderModernComposer;
     /**
-     * modern 캡처 버튼. 캡처를 둘 다 켜 두면 고르기 메뉴(지금 화면 / 영역 골라)를 열고,
-     * 하나만 켜 두면 고를 것 없이 바로 그 캡처를 한다. 둘 다 끄면 버튼이 없다.
+     * modern 입력칸 왼쪽 + 버튼. 누르면 켜 둔 캡처(지금 화면 / 영역 골라)를 고르는 메뉴가 위로 열린다.
+     * 카메라 모양은 사진 올리기로 읽혀서 + 로 두고, 캡처를 하나만 켜 두어도 메뉴를 열어 무엇을 하는지 보여 준다.
+     * 둘 다 끄면 버튼이 없다.
      */
     private renderCaptureButton;
     private toggleCapMenu;

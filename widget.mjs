@@ -9874,7 +9874,7 @@ let S = class extends Mt {
     return "";
   }
   /**
-   * modern 입력: 왼쪽에 캡처 버튼 하나, 가운데 둥근 입력칸, 오른쪽에 동그란 보내기.
+   * modern 입력: 왼쪽에 + 버튼(화면 캡처 메뉴), 가운데 둥근 입력칸, 오른쪽에 동그란 보내기.
    * 문의 남기기는 더보기 메뉴 맨 위에 있다 (renderMenu). 글자 수는 80%부터 보이고 95%부터 빨갛다.
    */
   renderModernComposer() {
@@ -9913,66 +9913,53 @@ let S = class extends Mt {
     </form>`;
   }
   /**
-   * modern 캡처 버튼. 캡처를 둘 다 켜 두면 고르기 메뉴(지금 화면 / 영역 골라)를 열고,
-   * 하나만 켜 두면 고를 것 없이 바로 그 캡처를 한다. 둘 다 끄면 버튼이 없다.
+   * modern 입력칸 왼쪽 + 버튼. 누르면 켜 둔 캡처(지금 화면 / 영역 골라)를 고르는 메뉴가 위로 열린다.
+   * 카메라 모양은 사진 올리기로 읽혀서 + 로 두고, 캡처를 하나만 켜 두어도 메뉴를 열어 무엇을 하는지 보여 준다.
+   * 둘 다 끄면 버튼이 없다.
    */
   renderCaptureButton() {
     const t = this.theme.captureEnabled !== !1, A = this.theme.regionCaptureEnabled !== !1;
     if (!t && !A) return null;
-    const e = this.streaming || this.capturing || this.pendingAttachments.length >= 4, r = k`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4Z"/><circle cx="12" cy="13" r="3.5"/></svg>`, s = k`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/></svg>`;
-    return A ? t ? w`<span class="m-cap">
+    const e = this.streaming || this.capturing || this.pendingAttachments.length >= 4;
+    return w`<span class="m-cap">
       <button
         type="button"
         class=${this.capMenuOpen ? "m-cap-btn on" : "m-cap-btn"}
         @click=${this.toggleCapMenu}
         ?disabled=${e}
-        title="캡처"
-        aria-label="캡처"
+        title="화면 캡처 붙이기"
+        aria-label="화면 캡처 붙이기"
         aria-haspopup="menu"
         aria-expanded=${this.capMenuOpen ? "true" : "false"}
       >
-        ${r}
+        ${k`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`}
       </button>
-      ${this.capMenuOpen ? w`<div class="cap-menu" role="menu" aria-label="캡처">
-            <button type="button" role="menuitem" @click=${this.pickViewportCapture}>
-              ${r}
-              <span class="cap-menu-text">
-                <span class="cap-menu-title">지금 화면 캡처</span>
-                <span class="cap-menu-sub">보이는 화면 전체를 붙여요</span>
-              </span>
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              ?disabled=${this.regionCapturing}
-              @click=${this.pickRegionCapture}
-            >
-              ${s}
-              <span class="cap-menu-text">
-                <span class="cap-menu-title">영역 골라 캡처</span>
-                <span class="cap-menu-sub">드래그한 부분만 붙여요</span>
-              </span>
-            </button>
+      ${this.capMenuOpen ? w`<div class="cap-menu" role="menu" aria-label="화면 캡처">
+            ${t ? w`<button
+                  type="button"
+                  role="menuitem"
+                  @click=${this.pickViewportCapture}
+                >
+                  ${k`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4Z"/><circle cx="12" cy="13" r="3.5"/></svg>`}
+                  <span class="cap-menu-text">
+                    <span class="cap-menu-title">지금 화면 캡처</span>
+                    <span class="cap-menu-sub">보이는 화면 전체를 붙여요</span>
+                  </span>
+                </button>` : null}
+            ${A ? w`<button
+                  type="button"
+                  role="menuitem"
+                  ?disabled=${this.regionCapturing}
+                  @click=${this.pickRegionCapture}
+                >
+                  ${k`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/></svg>`}
+                  <span class="cap-menu-text">
+                    <span class="cap-menu-title">영역 골라 캡처</span>
+                    <span class="cap-menu-sub">드래그한 부분만 붙여요</span>
+                  </span>
+                </button>` : null}
           </div>` : null}
-    </span>` : w`<button
-        type="button"
-        class="m-cap-btn"
-        @click=${this.startRegionCapture}
-        ?disabled=${e || this.regionCapturing}
-        title="영역 골라 캡처"
-        aria-label="영역 골라 캡처"
-      >
-        ${s}
-      </button>` : w`<button
-        type="button"
-        class="m-cap-btn"
-        @click=${this.captureViewport}
-        ?disabled=${e}
-        title="지금 화면 캡처"
-        aria-label="지금 화면 캡처"
-      >
-        ${r}
-      </button>`;
+    </span>`;
   }
   renderReportModal() {
     const t = this.isModern, A = t ? Nw : _w;
